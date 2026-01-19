@@ -1,0 +1,110 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vidspy"
+version = "0.1.0"
+description = "DSPy-style framework for optimizing text-to-video generation via VBench metric feedback"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Leo Chow", email = "leo_ckl@hotmail.com"}
+]
+maintainers = [
+    {name = "Leo Chow", email = "leo_ckl@hotmail.com"}
+]
+keywords = [
+    "video-generation",
+    "text-to-video",
+    "dspy",
+    "vbench",
+    "prompt-optimization",
+    "few-shot-learning",
+    "machine-learning",
+    "deep-learning"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Multimedia :: Video",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "dspy-ai>=2.4.0",
+    "torch>=2.0.0",
+    "numpy>=1.21.0",
+    "Pillow>=9.0.0",
+    "opencv-python>=4.5.0",
+    "requests>=2.25.0",
+    "tqdm>=4.60.0",
+    "pydantic>=2.0.0",
+    "PyYAML>=6.0.0",
+]
+
+[project.optional-dependencies]
+vbench = [
+    "vbench>=0.1.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+all = [
+    "vidspy[vbench,dev]",
+]
+
+[project.urls]
+Homepage = "https://github.com/leockl/vidspy"
+Documentation = "https://github.com/leockl/vidspy#readme"
+Repository = "https://github.com/leockl/vidspy"
+Issues = "https://github.com/leockl/vidspy/issues"
+
+[project.scripts]
+vidspy = "vidspy.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vidspy*"]
+
+[tool.setuptools.package-data]
+vidspy = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=vidspy --cov-report=term-missing"

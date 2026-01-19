@@ -1,0 +1,49 @@
+# ViDSPy Configuration
+# ====================
+# Copy this file to vidspy_config.yaml and customize as needed
+#
+# For API keys and secrets, use .env file instead
+
+# VLM Provider Settings
+vlm:
+  backend: openrouter  # or "huggingface"
+  model: google/gemini-2.0-flash-001
+  # api_key: your-api-key-here  # Or set OPENROUTER_API_KEY env var
+
+# Optimization Settings
+optimization:
+  default_optimizer: mipro_v2
+  max_bootstrapped_demos: 4
+  max_labeled_demos: 4
+
+# Metric Settings
+metrics:
+  quality_weight: 0.6
+  alignment_weight: 0.4
+  quality_metrics:
+    - subject_consistency
+    - motion_smoothness
+    - temporal_flickering
+    - human_anatomy
+    - aesthetic_quality
+    - imaging_quality
+  alignment_metrics:
+    - object_class
+    - human_action
+    - spatial_relationship
+    - overall_consistency
+
+# Target Thresholds
+targets:
+  human_anatomy: 0.85
+  alignment: 0.80
+
+# Cache Settings
+cache:
+  dir: ~/.cache/vidspy
+  vbench_models: ~/.cache/vbench
+
+# Hardware Settings
+hardware:
+  device: auto  # "cuda", "cpu", or "auto"
+  dtype: float16
