@@ -80,15 +80,15 @@ class OpenRouterVLM(VLMProvider):
     including Google Gemini, GPT-4V, and others.
     
     Args:
-        model: Model identifier (e.g., "google/gemini-2.0-flash-001").
+        model: Model identifier (e.g., "google/gemini-2.5-flash").
         api_key: OpenRouter API key. Falls back to OPENROUTER_API_KEY env var.
         base_url: API base URL.
         max_tokens: Maximum tokens in response.
         temperature: Sampling temperature.
-        
+
     Example:
         >>> vlm = OpenRouterVLM(
-        ...     model="google/gemini-2.0-flash-001",
+        ...     model="google/gemini-2.5-flash",
         ...     api_key="sk-..."
         ... )
         >>> response = vlm.complete(
@@ -96,10 +96,10 @@ class OpenRouterVLM(VLMProvider):
         ...     video_path="video.mp4"
         ... )
     """
-    
+
     # Models known to support video input
     VIDEO_CAPABLE_MODELS = [
-        "google/gemini-2.0-flash-001",
+        "google/gemini-2.5-flash",
         "google/gemini-pro-vision",
         "google/gemini-1.5-pro",
         "google/gemini-1.5-flash",
@@ -112,7 +112,7 @@ class OpenRouterVLM(VLMProvider):
     
     def __init__(
         self,
-        model: str = "google/gemini-2.0-flash-001",
+        model: str = "google/gemini-2.5-flash",
         api_key: Optional[str] = None,
         base_url: str = "https://openrouter.ai/api/v1",
         max_tokens: int = 4096,
@@ -524,12 +524,12 @@ def configure_vlm(
     Example:
         >>> vlm = configure_vlm(
         ...     backend="openrouter",
-        ...     model="google/gemini-2.0-flash-001"
+        ...     model="google/gemini-2.5-flash"
         ... )
     """
     if backend == "openrouter":
         return OpenRouterVLM(
-            model=model or "google/gemini-2.0-flash-001",
+            model=model or "google/gemini-2.5-flash",
             api_key=api_key,
             **kwargs,
         )

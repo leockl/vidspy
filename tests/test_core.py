@@ -343,7 +343,7 @@ class TestProviders:
         from vidspy import OpenRouterVLM
         
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
-            provider = OpenRouterVLM(model="google/gemini-2.0-flash-001")
+            provider = OpenRouterVLM(model="google/gemini-2.5-flash")
             assert provider is not None
     
     def test_huggingface_provider_init(self):
@@ -378,13 +378,13 @@ class TestIntegration:
 
         # Create OpenRouter VLM provider
         vlm = OpenRouterVLM(
-            model="google/gemini-2.0-flash-001",
+            model="google/gemini-2.5-flash",
             api_key=os.environ.get("OPENROUTER_API_KEY")
         )
 
         # Check provider is available
         assert vlm is not None
-        assert vlm.model == "google/gemini-2.0-flash-001"
+        assert vlm.model == "google/gemini-2.5-flash"
 
         # Test simple text completion (without video)
         response = vlm.complete(
@@ -410,7 +410,7 @@ class TestIntegration:
         # Initialize ViDSPy with OpenRouter
         vidspy = ViDSPy(
             vlm_backend="openrouter",
-            vlm_model="google/gemini-2.0-flash-001",
+            vlm_model="google/gemini-2.5-flash",
             api_key=os.environ.get("OPENROUTER_API_KEY")
         )
 

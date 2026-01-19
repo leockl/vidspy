@@ -152,7 +152,7 @@ class ViDSPy:
         
         if self.vlm_backend == "openrouter":
             return OpenRouterVLM(
-                model=self.vlm_model or "google/gemini-2.0-flash-001",
+                model=self.vlm_model or "google/gemini-2.5-flash",
                 api_key=self.api_key,
             )
         elif self.vlm_backend == "huggingface":

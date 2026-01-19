@@ -272,7 +272,7 @@ def create_example_config(
 # VLM Provider Settings
 vlm:
   backend: openrouter  # or "huggingface"
-  model: google/gemini-2.0-flash-001
+  model: google/gemini-2.5-flash
   # api_key: your-api-key-here  # Or set OPENROUTER_API_KEY env var
 
 # Optimization Settings

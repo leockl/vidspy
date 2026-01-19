@@ -47,7 +47,7 @@ from vidspy import ViDSPy
 
 vidspy = ViDSPy(
     vlm_backend="openrouter",
-    vlm_model="google/gemini-2.0-flash-001",
+    vlm_model="google/gemini-2.5-flash",
     api_key="your-api-key",
     device="auto"
 )
@@ -67,7 +67,7 @@ Edit the configuration file:
 # vidspy_config.yaml
 vlm:
   backend: openrouter
-  model: google/gemini-2.0-flash-001
+  model: google/gemini-2.5-flash
 
 optimization:
   default_optimizer: mipro_v2
@@ -402,16 +402,16 @@ Cloud-based multimodal VLMs via unified API:
 ```python
 vidspy = ViDSPy(
     vlm_backend="openrouter",
-    vlm_model="google/gemini-2.0-flash-001",
+    vlm_model="google/gemini-2.5-flash",
     api_key="your-api-key"  # Or set OPENROUTER_API_KEY env var
 )
 ```
 
-Supported models (all support vision):
-- `google/gemini-2.0-flash-001` (default, recommended)
-- `google/gemini-1.5-pro` (higher quality, slower)
-- `anthropic/claude-3-opus` (strong reasoning)
-- `openai/gpt-4o` (multimodal)
+**Example models:**
+- `google/gemini-2.5-flash` 
+- `google/gemini-1.5-pro` 
+- `anthropic/claude-opus-4.5` 
+- `openai/gpt-4o` 
 
 ### HuggingFace (Local)
 
