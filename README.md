@@ -2,7 +2,7 @@
 
 **DSPy-style framework for optimizing text-to-video generation via VBench metric feedback.**
 
-[![PyPI version](https://badge.fury.io/py/vidspy.svg)](https://badge.fury.io/py/vidspy)
+[![PyPI version](https://img.shields.io/pypi/v/vidspy)](https://pypi.org/project/vidspy/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
