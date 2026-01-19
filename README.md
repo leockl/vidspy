@@ -1,12 +1,14 @@
 # ViDSPy 🎬
 
-**DSPy-style framework for optimizing text-to-video generation via VBench metric feedback.**
+**DSPy-style framework for optimizing text-to-video prompts via VBench metric feedback.**
 
 [![PyPI version](https://img.shields.io/pypi/v/vidspy)](https://pypi.org/project/vidspy/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
-ViDSPy brings the power of [DSPy](https://github.com/stanfordnlp/dspy)'s declarative programming paradigm to text-to-video generation. Optimize your video generation prompts and few-shot demonstrations using VBench quality metrics as feedback signals.
+ViDSPy brings the power of [DSPy](https://github.com/stanfordnlp/dspy)'s declarative programming paradigm to text-to-video generation. **Optimize your prompts** for any text-to-video API (Runway, Pika, Replicate, etc.) using VBench quality metrics and VLM-based feedback.
+
+**Note:** ViDSPy optimizes *how you prompt* video generation models. It does not generate videos itself - you bring your own text-to-video API.
 
 ## 🎯 Key Features
 
@@ -120,31 +122,179 @@ vidspy = ViDSPy(config_path="/path/to/custom_config.yaml")
 OPENROUTER_API_KEY=your-api-key-here
 ```
 
+## 🎥 Connecting Video Generation Models
+
+**Important:** ViDSPy is a **prompt optimization framework** that sits on top of existing text-to-video models. It does NOT generate videos itself. Instead, it optimizes how you prompt external video generation services.
+
+### How ViDSPy Works
+
+```
+User Prompt → ViDSPy (optimize prompt) → Text-to-Video API → Generated Video
+                ↓
+            VBench + VLM (evaluate quality)
+                ↓
+        Learn better prompting strategies
+```
+
+### Setting Up Your Video Generator
+
+You need to provide a `video_generator` function that connects to your preferred text-to-video service:
+
+#### Example 1: Runway Gen-3
+
+```python
+from vidspy import VideoChainOfThought
+
+def runway_generator(prompt: str, **kwargs) -> str:
+    """Generate video using Runway Gen-3 API."""
+    import requests
+
+    response = requests.post(
+        "https://api.runwayml.com/v1/generate",
+        headers={"Authorization": f"Bearer {RUNWAY_API_KEY}"},
+        json={
+            "prompt": prompt,
+            "model": "gen3",
+            "duration": kwargs.get("duration", 5)
+        }
+    )
+
+    video_url = response.json()["output"]["url"]
+    # Download and save video locally
+    video_path = f"outputs/{response.json()['id']}.mp4"
+    # ... download logic ...
+    return video_path
+
+# Create module with your generator
+module = VideoChainOfThought(
+    "prompt -> video",
+    video_generator=runway_generator
+)
+```
+
+#### Example 2: Replicate (Stable Video Diffusion, CogVideo, etc.)
+
+```python
+import replicate
+
+def replicate_generator(prompt: str, **kwargs) -> str:
+    """Generate video using Replicate API."""
+    output = replicate.run(
+        "stability-ai/stable-video-diffusion",
+        input={"prompt": prompt}
+    )
+
+    # Save video from output URL
+    video_path = f"outputs/{uuid.uuid4()}.mp4"
+    # ... download logic ...
+    return video_path
+
+module = VideoChainOfThought(
+    "prompt -> video",
+    video_generator=replicate_generator
+)
+```
+
+#### Example 3: Pika Labs
+
+```python
+from pika import PikaClient
+
+def pika_generator(prompt: str, **kwargs) -> str:
+    """Generate video using Pika Labs API."""
+    client = PikaClient(api_key=PIKA_API_KEY)
+
+    video = client.generate_video(
+        prompt=prompt,
+        aspect_ratio="16:9",
+        duration=3
+    )
+
+    return video.download_path
+
+module = VideoChainOfThought(
+    "prompt -> video",
+    video_generator=pika_generator
+)
+```
+
+### Supported Text-to-Video Services
+
+ViDSPy works with any text-to-video API. Popular options include:
+
+| Service | API Available | Notes |
+|---------|---------------|-------|
+| Runway Gen-3 | ✅ Yes | High quality, good motion |
+| Pika Labs | ✅ Yes | Creative effects, good for social media |
+| Stability AI Video | ✅ Yes | Open weights available |
+| Replicate | ✅ Yes | Multiple models (CogVideo, SVD, etc.) |
+| LumaAI Dream Machine | ✅ Yes | Cinematic quality |
+| HaiperAI | ✅ Yes | Fast generation |
+| Morph Studio | ✅ Yes | Style control |
+
+### Custom Video Generator Template
+
+```python
+def my_video_generator(prompt: str, **kwargs) -> str:
+    """
+    Your custom video generation function.
+
+    Args:
+        prompt: Enhanced prompt from ViDSPy
+        **kwargs: Additional parameters (duration, aspect_ratio, etc.)
+
+    Returns:
+        Local path to the generated video file
+    """
+    # 1. Call your text-to-video API
+    # 2. Download the generated video
+    # 3. Save it locally
+    # 4. Return the file path
+
+    video_path = "path/to/generated/video.mp4"
+    return video_path
+```
+
 ## 🚀 Quick Start
 
 ```python
 from vidspy import ViDSPy, VideoChainOfThought, Example
 
-# Initialize ViDSPy with OpenRouter VLM backend
+# Step 1: Define your video generator (connect to your text-to-video API)
+def my_video_generator(prompt: str, **kwargs) -> str:
+    """Your text-to-video API integration."""
+    # Example: Runway, Pika, Replicate, etc.
+    import my_video_api
+    video = my_video_api.generate(prompt=prompt)
+    return video.save_path()
+
+# Step 2: Initialize ViDSPy with OpenRouter VLM backend
 vidspy = ViDSPy(vlm_backend="openrouter")
 
-# Create training examples
+# Step 3: Create training examples (use videos you've already generated)
 trainset = [
     Example(prompt="a cat jumping over a fence", video_path="cat_jump.mp4"),
     Example(prompt="a dog running in a park", video_path="dog_run.mp4"),
     Example(prompt="a bird flying through clouds", video_path="bird_fly.mp4"),
 ]
 
-# Optimize a video generation module
+# Step 4: Create module with your video generator
+module = VideoChainOfThought(
+    "prompt -> video",
+    video_generator=my_video_generator  # Connect your generator!
+)
+
+# Step 5: Optimize prompting strategy
 optimized = vidspy.optimize(
-    VideoChainOfThought("prompt -> video"),
+    module,
     trainset,
     optimizer="mipro_v2"  # Multi-stage instruction + demo optimization
 )
 
-# Generate videos with optimized prompts and demonstrations
+# Step 6: Generate videos with optimized prompts
 result = optimized("a dolphin swimming in the ocean")
 print(f"Generated video: {result.video_path}")
+print(f"Optimized prompt used: {result.enhanced_prompt}")
 ```
 
 ## 📊 VBench Metrics
@@ -237,9 +387,17 @@ optimized = vidspy.optimize(
 
 ## 🤖 VLM Providers
 
+**Vision Language Models (VLMs)** in ViDSPy are used for:
+- 📝 **Prompt enhancement** - Improving user prompts before generation
+- 🔍 **Video analysis** - Understanding generated video content
+- 🎯 **Quality assessment** - Analyzing text-video alignment
+- 🧠 **Chain-of-thought reasoning** - Planning video generation strategies
+
+**Note:** VLMs do NOT generate videos. They help optimize the prompts you send to your text-to-video API.
+
 ### OpenRouter (Default)
 
-Cloud-based video VLMs via unified API:
+Cloud-based multimodal VLMs via unified API:
 
 ```python
 vidspy = ViDSPy(
@@ -249,11 +407,11 @@ vidspy = ViDSPy(
 )
 ```
 
-Supported models:
-- `google/gemini-2.0-flash-001` (default)
-- `google/gemini-1.5-pro`
-- `anthropic/claude-3-opus`
-- `openai/gpt-4o`
+Supported models (all support vision):
+- `google/gemini-2.0-flash-001` (default, recommended)
+- `google/gemini-1.5-pro` (higher quality, slower)
+- `anthropic/claude-3-opus` (strong reasoning)
+- `openai/gpt-4o` (multimodal)
 
 ### HuggingFace (Local)
 
@@ -269,24 +427,39 @@ vidspy = ViDSPy(
 
 ## 📁 Video Modules
 
-ViDSPy provides several module types for different use cases:
+ViDSPy provides several module types for different prompting strategies:
 
 ```python
 from vidspy import VideoPredict, VideoChainOfThought, VideoReAct, VideoEnsemble
 
-# Simple prediction
-predictor = VideoPredict("prompt -> video_path")
+# Define your video generator once
+def my_video_gen(prompt, **kwargs):
+    # Your text-to-video API call
+    return video_path
 
-# Chain-of-thought reasoning
-cot = VideoChainOfThought("prompt -> video")
+# Simple prediction with prompt enhancement
+predictor = VideoPredict(
+    "prompt -> video_path",
+    video_generator=my_video_gen
+)
 
-# ReAct-style iterative refinement
-react = VideoReAct("prompt -> video", max_iterations=3)
+# Chain-of-thought reasoning (analyzes scene, motion, style before generating)
+cot = VideoChainOfThought(
+    "prompt -> video",
+    video_generator=my_video_gen
+)
 
-# Ensemble multiple approaches
+# ReAct-style iterative refinement (generates, evaluates, refines)
+react = VideoReAct(
+    "prompt -> video",
+    video_generator=my_video_gen,
+    max_iterations=3
+)
+
+# Ensemble multiple approaches (tries different strategies, picks best)
 ensemble = VideoEnsemble([
-    VideoPredict(),
-    VideoChainOfThought(),
+    VideoPredict(video_generator=my_video_gen),
+    VideoChainOfThought(video_generator=my_video_gen),
 ], selection_metric=composite_reward)
 ```
 
@@ -305,6 +478,7 @@ setup_vbench_models()  # Downloads to ~/.cache/vbench
 
 ```python
 import os
+import replicate
 from vidspy import (
     ViDSPy,
     VideoChainOfThought,
@@ -315,10 +489,23 @@ from vidspy import (
 # Set API key
 os.environ["OPENROUTER_API_KEY"] = "your-api-key"
 
-# Initialize
+# Define video generator (using Replicate as example)
+def replicate_video_generator(prompt: str, **kwargs) -> str:
+    """Generate video using Replicate API."""
+    output = replicate.run(
+        "stability-ai/stable-video-diffusion",
+        input={"prompt": prompt}
+    )
+
+    # Download and save video
+    video_path = f"outputs/{hash(prompt)}.mp4"
+    # ... download logic ...
+    return video_path
+
+# Initialize ViDSPy
 vidspy = ViDSPy(vlm_backend="openrouter")
 
-# Prepare training data
+# Prepare training data (videos you've already generated)
 trainset = [
     Example(
         prompt="a person walking through a forest",
@@ -335,9 +522,13 @@ trainset = [
 valset = trainset[-2:]
 trainset = trainset[:-2]
 
-# Create and optimize module
-module = VideoChainOfThought("prompt -> video")
+# Create module with your video generator
+module = VideoChainOfThought(
+    "prompt -> video",
+    video_generator=replicate_video_generator
+)
 
+# Optimize prompting strategy
 optimized = vidspy.optimize(
     module,
     trainset,
@@ -355,7 +546,7 @@ print(f"Mean Score: {results['mean_score']:.4f}")
 print(f"Quality: {results['details'][0].get('quality_score', 'N/A')}")
 print(f"Alignment: {results['details'][0].get('alignment_score', 'N/A')}")
 
-# Generate new videos
+# Generate new videos with optimized prompts
 result = optimized("a butterfly landing on a flower")
 print(f"Generated: {result.video_path}")
 print(f"Enhanced prompt: {result.enhanced_prompt}")
