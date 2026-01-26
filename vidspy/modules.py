@@ -12,11 +12,9 @@ import dspy
 
 from vidspy.signatures import (
     VideoSignature,
-    VideoGenerationSignature,
     VideoChainOfThoughtSignature,
     VideoReActSignature,
     VideoPromptEnhancementSignature,
-    parse_signature_string,
 )
 
 
@@ -67,8 +65,7 @@ class VideoModule(dspy.Module):
         super().__init__()
         self.signature = signature
         self.video_generator = video_generator or self._mock_video_generator
-        self._demos: List[Dict[str, Any]] = []
-        
+
     def _mock_video_generator(self, prompt: str, **kwargs: Any) -> str:
         """Mock video generator for testing."""
         import hashlib
@@ -81,18 +78,6 @@ class VideoModule(dspy.Module):
     def set_video_generator(self, generator: Callable) -> None:
         """Set the video generator callable."""
         self.video_generator = generator
-    
-    def add_demo(self, demo: Dict[str, Any]) -> None:
-        """Add a demonstration example."""
-        self._demos.append(demo)
-    
-    def set_demos(self, demos: List[Dict[str, Any]]) -> None:
-        """Set all demonstration examples."""
-        self._demos = list(demos)
-    
-    def clear_demos(self) -> None:
-        """Clear all demonstrations."""
-        self._demos = []
 
     def forward(self, prompt: str, **kwargs: Any) -> VideoOutput:
         """
@@ -173,7 +158,7 @@ class VideoPredict(VideoModule):
             video_path=video_path,
             enhanced_prompt=enhanced,
             reasoning=reasoning,
-            metadata={"original_prompt": prompt, "demos": self._demos},
+            metadata={"original_prompt": prompt},
         )
 
 
@@ -244,7 +229,6 @@ class VideoChainOfThought(VideoModule):
             reasoning=reasoning,
             metadata={
                 "original_prompt": prompt,
-                "demos": self._demos,
                 "method": "chain_of_thought",
             },
         )
@@ -322,7 +306,6 @@ class VideoReAct(VideoModule):
             reasoning=reasoning,
             metadata={
                 "original_prompt": prompt,
-                "demos": self._demos,
                 "method": "react",
                 "iterations": iterations,
                 "num_iterations": len(iterations),

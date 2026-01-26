@@ -69,6 +69,9 @@ vlm:
   backend: openrouter
   model: google/gemini-2.5-flash
 
+optimizer:
+  lm: openai/gpt-4o-mini  # LLM for generating instruction variations
+
 optimization:
   default_optimizer: mipro_v2
   max_bootstrapped_demos: 4
@@ -120,7 +123,47 @@ vidspy = ViDSPy(config_path="/path/to/custom_config.yaml")
 ```bash
 # .env
 OPENROUTER_API_KEY=your-api-key-here
+OPENROUTER_OPTIMIZER_API_KEY=your-api-key-here  # For optimizer LLM
 ```
+
+### 🤖 Optimizer LLM Configuration
+
+ViDSPy uses **two different LLMs**:
+1. **VLM (Vision Language Model)**: Analyzes videos and enhances prompts during inference
+2. **Optimizer LLM**: Used by **MIPROv2, COPRO, and GEPA** optimizers to generate instruction variations during optimization
+
+**Note:** BootstrapFewShot and LabeledFewShot optimizers do **NOT** require an optimizer LLM - they work without this configuration.
+
+**Configure the Optimizer LLM:**
+
+```python
+from vidspy import ViDSPy
+
+vidspy = ViDSPy(
+    vlm_backend="openrouter",
+    vlm_model="google/gemini-2.5-flash",          # For video analysis
+    optimizer_lm="openai/gpt-4o-mini",            # For optimization
+    optimizer_api_key="your-openrouter-api-key"   # Or set OPENROUTER_OPTIMIZER_API_KEY
+)
+```
+
+Or in `vidspy_config.yaml`:
+
+```yaml
+vlm:
+  backend: openrouter
+  model: google/gemini-2.5-flash
+
+optimizer:
+  lm: openai/gpt-4o-mini  # Any OpenRouter model
+```
+
+**Choosing an Optimizer LLM:**
+- **For most users**: `openai/gpt-4o-mini` (fast and cost-effective)
+- **For better quality**: `openai/gpt-4o` or `anthropic/claude-3-5-sonnet`
+- **Any model from [OpenRouter](https://openrouter.ai/models)** is supported
+
+**Note:** If `optimizer_api_key` is not specified, it will use the VLM API key as fallback.
 
 ## 🎥 Connecting Video Generation Models
 
@@ -269,6 +312,8 @@ def my_video_generator(prompt: str, **kwargs) -> str:
     return video.save_path()
 
 # Step 2: Initialize ViDSPy with OpenRouter VLM backend
+# Note: Optimizer LLM defaults to "openai/gpt-4o-mini" via OpenRouter
+# You can customize: ViDSPy(vlm_backend="openrouter", optimizer_lm="openai/gpt-4o")
 vidspy = ViDSPy(vlm_backend="openrouter")
 
 # Step 3: Create training examples (use videos you've already generated)
@@ -427,7 +472,11 @@ vidspy = ViDSPy(
 
 ## 📁 Video Modules
 
-ViDSPy provides several module types for different prompting strategies:
+ViDSPy provides several module types for different prompting strategies.
+
+### Module Signatures
+
+When creating video modules, you'll typically use simple signature strings like `"prompt -> video"` or `"prompt -> video_path"`. The library internally handles all the complex reasoning steps (scene analysis, motion planning, etc.) based on the module type you choose. You don't need to worry about the internal signature details—just use these standard formats and ViDSPy takes care of the rest.
 
 ```python
 from vidspy import VideoPredict, VideoChainOfThought, VideoReAct, VideoEnsemble
@@ -438,18 +487,21 @@ def my_video_gen(prompt, **kwargs):
     return video_path
 
 # Simple prediction with prompt enhancement
+# Just use "prompt -> video_path" - ViDSPy handles the internal complexity
 predictor = VideoPredict(
     "prompt -> video_path",
     video_generator=my_video_gen
 )
 
 # Chain-of-thought reasoning (analyzes scene, motion, style before generating)
+# The simple "prompt -> video" signature is all you need
 cot = VideoChainOfThought(
     "prompt -> video",
     video_generator=my_video_gen
 )
 
 # ReAct-style iterative refinement (generates, evaluates, refines)
+# Same simple signature - internal reasoning is handled automatically
 react = VideoReAct(
     "prompt -> video",
     video_generator=my_video_gen,

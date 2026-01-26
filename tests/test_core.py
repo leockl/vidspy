@@ -18,7 +18,7 @@ class TestImports:
         """Test main vidspy import."""
         import vidspy
         assert hasattr(vidspy, '__version__')
-        assert vidspy.__version__ == "0.1.0"
+        assert vidspy.__version__ == "0.1.2"
     
     def test_import_core_classes(self):
         """Test importing core classes."""
@@ -307,7 +307,7 @@ class TestViDSPyCore:
     def test_available_optimizers(self):
         """Test that ViDSPy lists available optimizers."""
         from vidspy import ViDSPy
-        
+
         expected_optimizers = [
             "bootstrap",
             "labeled",
@@ -315,14 +315,157 @@ class TestViDSPyCore:
             "copro",
             "gepa",
         ]
-        
+
         for opt in expected_optimizers:
             assert opt in ViDSPy.AVAILABLE_OPTIMIZERS
+
+    def test_optimizer_lm_parameters(self):
+        """Test ViDSPy accepts optimizer LM parameters."""
+        from vidspy import ViDSPy
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+            vidspy = ViDSPy(
+                vlm_backend="openrouter",
+                optimizer_lm="openai/gpt-4o",
+                optimizer_api_key="optimizer-key"
+            )
+
+            assert vidspy.optimizer_lm == "openai/gpt-4o"
+            assert vidspy.optimizer_api_key == "optimizer-key"
+
+    def test_optimizer_lm_defaults(self):
+        """Test optimizer LM uses correct defaults."""
+        from vidspy import ViDSPy
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+            vidspy = ViDSPy(vlm_backend="openrouter")
+
+            # Should default to gpt-4o-mini
+            assert vidspy.optimizer_lm == "openai/gpt-4o-mini"
+            # Should fall back to VLM API key
+            assert vidspy.optimizer_api_key == "test-key"
+
+    def test_optimizer_api_key_fallback(self):
+        """Test optimizer API key fallback chain."""
+        from vidspy import ViDSPy
+
+        # Test: optimizer_api_key → OPENROUTER_OPTIMIZER_API_KEY → VLM API key
+        with patch.dict(os.environ, {
+            "OPENROUTER_API_KEY": "vlm-key",
+            "OPENROUTER_OPTIMIZER_API_KEY": "optimizer-env-key"
+        }):
+            vidspy = ViDSPy(vlm_backend="openrouter")
+
+            # Should use OPENROUTER_OPTIMIZER_API_KEY
+            assert vidspy.optimizer_api_key == "optimizer-env-key"
+
+    def test_configure_method_with_optimizer(self):
+        """Test configure() method updates optimizer settings."""
+        from vidspy import ViDSPy
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+            vidspy = ViDSPy(vlm_backend="openrouter")
+
+            # Reconfigure optimizer
+            vidspy.configure(
+                optimizer_lm="anthropic/claude-3-5-sonnet",
+                optimizer_api_key="new-key"
+            )
+
+            assert vidspy.optimizer_lm == "anthropic/claude-3-5-sonnet"
+            assert vidspy.optimizer_api_key == "new-key"
+            # Should reset DSPy configuration
+            assert vidspy._dspy_configured == False
+
+
+class TestOptimizerLLMConfiguration:
+    """Test optimizer LLM configuration and lazy loading."""
+
+    def test_dspy_not_configured_on_init(self):
+        """Test DSPy is not configured during ViDSPy initialization."""
+        from vidspy import ViDSPy
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+            vidspy = ViDSPy(
+                vlm_backend="openrouter",
+                optimizer_api_key="optimizer-key"
+            )
+
+            # DSPy should NOT be configured yet (lazy loading)
+            assert vidspy._dspy_configured == False
+
+    def test_configure_dspy_for_mipro(self):
+        """Test DSPy is configured when using MIPROv2."""
+        from vidspy import ViDSPy, VideoChainOfThought, Example
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+            with patch('dspy.LM') as mock_lm, \
+                 patch('dspy.configure') as mock_configure:
+
+                vidspy = ViDSPy(
+                    vlm_backend="openrouter",
+                    optimizer_api_key="optimizer-key"
+                )
+
+                # Create simple trainset
+                trainset = [Example(prompt="test", video_path="/mock.mp4")]
+                module = VideoChainOfThought("prompt -> video")
+
+                # This should trigger DSPy configuration
+                try:
+                    vidspy.optimize(module, trainset, optimizer="mipro_v2")
+                except Exception:
+                    pass  # May fail due to mocking, but should call configure
+
+                # Verify DSPy was configured
+                assert vidspy._dspy_configured == True
+                mock_configure.assert_called_once()
+
+    def test_no_configure_for_bootstrap(self):
+        """Test DSPy is NOT configured for BootstrapFewShot."""
+        from vidspy import ViDSPy, VideoChainOfThought, Example
+
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+            vidspy = ViDSPy(vlm_backend="openrouter")
+
+            trainset = [Example(prompt="test", video_path="/mock.mp4")]
+            module = VideoChainOfThought("prompt -> video")
+
+            # BootstrapFewShot should NOT require optimizer LLM
+            # So we don't need optimizer_api_key
+            try:
+                vidspy.optimize(module, trainset, optimizer="bootstrap")
+            except Exception:
+                pass  # May fail for other reasons
+
+            # DSPy should NOT have been configured
+            assert vidspy._dspy_configured == False
+
+    def test_optimizer_requires_api_key_error(self):
+        """Test that MIPROv2 without API key raises error."""
+        from vidspy import ViDSPy, VideoChainOfThought, Example
+
+        # Create ViDSPy WITHOUT optimizer API key
+        vidspy = ViDSPy(
+            vlm_backend="huggingface",
+            vlm_model="test-model",
+            device="cpu"
+        )
+
+        # Clear any env vars
+        vidspy.optimizer_api_key = None
+
+        trainset = [Example(prompt="test", video_path="/mock.mp4")]
+        module = VideoChainOfThought("prompt -> video")
+
+        # Should raise error when trying to use MIPROv2
+        with pytest.raises(ValueError, match="Optimizer API key required"):
+            vidspy.optimize(module, trainset, optimizer="mipro_v2")
 
 
 class TestCLI:
     """Test CLI functionality."""
-    
+
     def test_cli_module_exists(self):
         """Test that CLI module can be imported."""
         from vidspy import cli

@@ -187,15 +187,10 @@ class VidBootstrapFewShot(VidOptimizer):
         
         # Sort by score and select top demos
         scored_examples.sort(key=lambda x: x[0], reverse=True)
-        top_demos = [ex for _, ex in scored_examples[:self.max_bootstrapped_demos]]
-        
-        # Attach demos to module
-        if hasattr(module, "set_demos"):
-            module.set_demos([
-                {"prompt": ex.prompt, "video_path": ex.video_path}
-                for ex in top_demos
-            ])
-        
+
+        # Note: In fallback mode, we simply return the module as-is.
+        # DSPy's actual optimization happens through the compile() method above,
+        # not through storing demos in the module.
         return module
 
 
@@ -274,15 +269,9 @@ class VidLabeledFewShot(VidOptimizer):
         trainset: List[Any],
     ) -> Any:
         """Fallback compilation."""
-        # Simply select first k examples
-        demos = trainset[:self.k]
-        
-        if hasattr(module, "set_demos"):
-            module.set_demos([
-                {"prompt": ex.prompt, "video_path": ex.video_path}
-                for ex in demos
-            ])
-        
+        # Note: In fallback mode, we simply return the module as-is.
+        # DSPy's actual optimization happens through the compile() method above,
+        # not through storing demos in the module.
         return module
 
 

@@ -152,6 +152,64 @@ hardware:
             assert vidspy.device == "auto"
             assert vidspy.cache_dir == Path.home() / ".cache" / "vidspy"
 
+    def test_vidspy_loads_optimizer_config(self):
+        """Test ViDSPy loads optimizer settings from config file."""
+        from vidspy import ViDSPy
+
+        # Create a temporary config file with optimizer section
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write("""
+vlm:
+  backend: openrouter
+  model: google/gemini-2.5-flash
+
+optimizer:
+  lm: anthropic/claude-3-5-sonnet
+  api_key: config-optimizer-key
+
+hardware:
+  device: cpu
+""")
+            config_path = f.name
+
+        try:
+            with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+                vidspy = ViDSPy(config_path=config_path)
+
+                # Verify optimizer settings from config
+                assert vidspy.optimizer_lm == "anthropic/claude-3-5-sonnet"
+                assert vidspy.optimizer_api_key == "config-optimizer-key"
+        finally:
+            os.unlink(config_path)
+
+    def test_optimizer_args_override_config(self):
+        """Test that optimizer arguments override config file."""
+        from vidspy import ViDSPy
+
+        # Create a temporary config file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write("""
+optimizer:
+  lm: openai/gpt-4o-mini
+  api_key: config-key
+""")
+            config_path = f.name
+
+        try:
+            with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
+                # Pass arguments that should override config
+                vidspy = ViDSPy(
+                    optimizer_lm="openai/gpt-4o",
+                    optimizer_api_key="arg-key",
+                    config_path=config_path
+                )
+
+                # Verify arguments took precedence
+                assert vidspy.optimizer_lm == "openai/gpt-4o"
+                assert vidspy.optimizer_api_key == "arg-key"
+        finally:
+            os.unlink(config_path)
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
