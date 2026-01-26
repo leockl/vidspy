@@ -18,7 +18,7 @@ class TestImports:
         """Test main vidspy import."""
         import vidspy
         assert hasattr(vidspy, '__version__')
-        assert vidspy.__version__ == "0.1.2"
+        assert vidspy.__version__ == "0.1.3"
     
     def test_import_core_classes(self):
         """Test importing core classes."""

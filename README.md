@@ -65,26 +65,54 @@ Edit the configuration file:
 
 ```yaml
 # vidspy_config.yaml
+# VLM Provider Settings
 vlm:
-  backend: openrouter
+  backend: openrouter  # or "huggingface"
   model: google/gemini-2.5-flash
+  # api_key: your-api-key-here  # Or set OPENROUTER_API_KEY env var
 
+# Optimizer LLM Settings
+# This LLM is used by DSPy optimizers (MIPROv2, COPRO, GEPA) to generate instruction variations
 optimizer:
-  lm: openai/gpt-4o-mini  # LLM for generating instruction variations
+  lm: openai/gpt-4o-mini  # Any model from OpenRouter
+  # api_key: your-api-key-here  # Or set OPENROUTER_OPTIMIZER_API_KEY env var
 
+# Optimization Settings
 optimization:
   default_optimizer: mipro_v2
   max_bootstrapped_demos: 4
+  max_labeled_demos: 4
 
+# Metric Settings
 metrics:
   quality_weight: 0.6
   alignment_weight: 0.4
+  quality_metrics:
+    - subject_consistency
+    - motion_smoothness
+    - temporal_flickering
+    - human_anatomy
+    - aesthetic_quality
+    - imaging_quality
+  alignment_metrics:
+    - object_class
+    - human_action
+    - spatial_relationship
+    - overall_consistency
 
+# Target Thresholds
+targets:
+  human_anatomy: 0.85
+  alignment: 0.80
+
+# Cache Settings
 cache:
   dir: ~/.cache/vidspy
+  vbench_models: ~/.cache/vbench
 
+# Hardware Settings
 hardware:
-  device: auto
+  device: auto  # "cuda", "cpu", or "auto"
   dtype: float16
 ```
 
@@ -143,7 +171,7 @@ vidspy = ViDSPy(
     vlm_backend="openrouter",
     vlm_model="google/gemini-2.5-flash",          # For video analysis
     optimizer_lm="openai/gpt-4o-mini",            # For optimization
-    optimizer_api_key="your-openrouter-api-key"   # Or set OPENROUTER_OPTIMIZER_API_KEY
+    optimizer_api_key="your-openrouter-api-key"   # Or set OPENROUTER_OPTIMIZER_API_KEY env var
 )
 ```
 
@@ -536,10 +564,12 @@ from vidspy import (
     VideoChainOfThought,
     Example,
     composite_reward,
+    VBenchMetric,
 )
 
-# Set API key
-os.environ["OPENROUTER_API_KEY"] = "your-api-key"
+# Set API keys (or pass directly to ViDSPy)
+os.environ["OPENROUTER_API_KEY"] = "your-vlm-api-key"
+os.environ["OPENROUTER_OPTIMIZER_API_KEY"] = "your-optimizer-api-key"
 
 # Define video generator (using Replicate as example)
 def replicate_video_generator(prompt: str, **kwargs) -> str:
@@ -554,8 +584,28 @@ def replicate_video_generator(prompt: str, **kwargs) -> str:
     # ... download logic ...
     return video_path
 
-# Initialize ViDSPy
-vidspy = ViDSPy(vlm_backend="openrouter")
+# Initialize ViDSPy with all available parameters
+vidspy = ViDSPy(
+    # VLM Provider Settings (corresponds to vlm: section in config)
+    vlm_backend="openrouter",  # or "huggingface"
+    vlm_model="google/gemini-2.5-flash",  # VLM for video analysis
+    api_key="your-vlm-api-key",  # Or set OPENROUTER_API_KEY env var
+
+    # Optimizer LLM Settings (corresponds to optimizer: section in config)
+    optimizer_lm="openai/gpt-4o-mini",  # LLM for optimizers (MIPROv2, COPRO, GEPA)
+    optimizer_api_key="your-optimizer-api-key",  # Or set OPENROUTER_OPTIMIZER_API_KEY env var
+
+    # Cache Settings (corresponds to cache.dir in config)
+    cache_dir="~/.cache/vidspy",  # Cache directory for models
+    # Note: VBench models cache (cache.vbench_models) is set via setup_vbench_models()
+
+    # Hardware Settings (corresponds to hardware: section in config)
+    device="auto",  # "cuda", "cpu", or "auto"
+    # Note: hardware.dtype from config is used internally by HuggingFace VLM
+
+    # Config File (optional)
+    # config_path="vidspy_config.yaml",  # Load all settings from config file
+)
 
 # Prepare training data (videos you've already generated)
 trainset = [
@@ -580,14 +630,39 @@ module = VideoChainOfThought(
     video_generator=replicate_video_generator
 )
 
-# Optimize prompting strategy
+# Optional: Create custom metric with specific settings
+# (Corresponds to metrics: section in config file)
+custom_metric = VBenchMetric(
+    quality_weight=0.6,  # Corresponds to metrics.quality_weight in config
+    alignment_weight=0.4,  # Corresponds to metrics.alignment_weight in config
+    quality_metrics=[  # Corresponds to metrics.quality_metrics in config
+        "subject_consistency",
+        "motion_smoothness",
+        "temporal_flickering",
+        "human_anatomy",
+        "aesthetic_quality",
+        "imaging_quality"
+    ],
+    alignment_metrics=[  # Corresponds to metrics.alignment_metrics in config
+        "object_class",
+        "human_action",
+        "spatial_relationship",
+        "overall_consistency"
+    ]
+)
+# Note: Target thresholds (targets: section in config) are for reference/documentation
+
+# Optimize prompting strategy with optimization settings
+# (These correspond to the optimization: section in config file)
 optimized = vidspy.optimize(
     module,
     trainset,
     valset=valset,
-    metric=composite_reward,
-    optimizer="mipro_v2",
+    metric=custom_metric,  # Or use composite_reward for defaults (60% quality, 40% alignment)
+    optimizer="mipro_v2",  # Corresponds to optimization.default_optimizer in config
     num_candidates=10,
+    max_bootstrapped_demos=4,  # Corresponds to optimization.max_bootstrapped_demos in config
+    max_labeled_demos=4,  # Corresponds to optimization.max_labeled_demos in config
 )
 
 # Evaluate on test set
