@@ -2,7 +2,7 @@
 
 **DSPy-style framework for optimizing text-to-video prompts via VBench metric feedback.**
 
-[![PyPI version](https://img.shields.io/pypi/v/vidspy)](https://pypi.org/project/vidspy/)
+[![PyPI version](https://img.shields.io/pypi/v/vidspy?cacheSeconds=60)](https://pypi.org/project/vidspy/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
